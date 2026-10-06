@@ -219,22 +219,22 @@ ORDER BY year, month;
 
 ## Repository Structure
 
-| Path | Description |
-|------|-------------|
-| [`ddl/`](ddl/) | DDL scripts — star schema creation |
-| [`ddl/01_create_dim_tables.sql`](ddl/01_create_dim_tables.sql) | Dimension tables: `dim_date`, `dim_stop`, `dim_trip` |
-| [`ddl/02_create_fact_table.sql`](ddl/02_create_fact_table.sql) | Fact table: `fact_stop_arrival` with indexes |
-| [`dml/`](dml/) | DML scripts — sample data |
-| [`dml/01_sample_dim_data.sql`](dml/01_sample_dim_data.sql) | Sample rows for dimension tables |
-| [`dml/02_sample_fact_data.sql`](dml/02_sample_fact_data.sql) | Sample rows for fact table |
-| [`queries/`](queries/) | SQL answering the 5 business questions |
-| [`queries/01_delay_categories.sql`](queries/01_delay_categories.sql) | Q1: distribution of arrivals by delay category |
-| [`queries/02_delays_by_line.sql`](queries/02_delays_by_line.sql) | Q2: delays by bus line |
-| [`queries/03_delays_by_stop.sql`](queries/03_delays_by_stop.sql) | Q3: delays by bus stop |
-| [`queries/04_delays_by_time.sql`](queries/04_delays_by_time.sql) | Q4: delays by time of day / weekday |
-| [`queries/05_reliability_over_time.sql`](queries/05_reliability_over_time.sql) | Q5: reliability trend over time |
-| [`docs/`](docs/) | Architecture and schema diagrams |
-
+```text
+.
+├── ddl/                                # DDL scripts — star schema creation
+│   ├── 01_create_dim_tables.sql        # Dimension tables: dim_date, dim_stop, dim_trip
+│   └── 02_create_fact_table.sql        # Fact table: fact_stop_arrival with indexes
+├── dml/                                # DML scripts — sample data
+│   ├── 01_sample_dim_data.sql          # Sample rows for dimension tables
+│   └── 02_sample_fact_data.sql         # Sample rows for fact table
+├── queries/                            # SQL answering the 5 business questions
+│   ├── 01_delay_categories.sql         # Q1: distribution of arrivals by delay category
+│   ├── 02_delays_by_line.sql           # Q2: delays by bus line
+│   ├── 03_delays_by_stop.sql           # Q3: delays by bus stop
+│   ├── 04_delays_by_time.sql           # Q4: delays by time of day / weekday
+│   └── 05_reliability_over_time.sql    # Q5: reliability trend over time
+└── docs/                               # Architecture and schema diagrams
+```
 ## How to Run
 
 ```bash
