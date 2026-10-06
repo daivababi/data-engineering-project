@@ -220,7 +220,7 @@ ORDER BY year, month;
 ## Repository Structure
 
 | Path | Description |
-|---|---|
+|------|-------------|
 | [`ddl/`](ddl/) | DDL scripts — star schema creation |
 | [`ddl/01_create_dim_tables.sql`](ddl/01_create_dim_tables.sql) | Dimension tables: `dim_date`, `dim_stop`, `dim_trip` |
 | [`ddl/02_create_fact_table.sql`](ddl/02_create_fact_table.sql) | Fact table: `fact_stop_arrival` with indexes |
