@@ -4,10 +4,10 @@
 
 ## Project Member Roles and Contributions
 
-- Daiva Babi — attended the project plan discussion meeting (25%)
-- Peep Kolberg — attended the project plan discussion meeting (25%)
-- Inga Tallinn — attended the project plan discussion meeting (25%)
-- Tiina Uuk — attended the project plan discussion meeting (25%)
+- Daiva Babi — attended the project plan discussion meeting, prepared Project 1 document (25%)
+- Peep Kolberg — attended the project plan discussion meeting, prepared Project 1 document (25%)
+- Inga Tallinn — attended the project plan discussion meeting, prepared Project 1 document (25%)
+- Tiina Uuk — attended the project plan discussion meeting, prepared Project 1 document (25%)
 
 ## Business Brief
 
