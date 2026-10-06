@@ -86,8 +86,6 @@ ORDER BY percentage DESC;
 
 ## Repository Structure
 
-## Repository Structure
-
 | Path | Description |
 |---|---|
 | [`ddl/`](ddl/) | DDL scripts — star schema creation |
