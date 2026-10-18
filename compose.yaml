@@ -7,6 +7,8 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      POLL_INTERVAL_SECONDS: "15"
     ports:
       - "${POSTGRES_PORT:-5434}:5432"
     volumes:
