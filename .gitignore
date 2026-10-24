@@ -1,2 +1,4 @@
-data/ridango_responses
+.env
+logs/
 .vscode
+data/ridango_responses
