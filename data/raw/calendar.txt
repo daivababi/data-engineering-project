@@ -1,0 +1,6 @@
+service_id,start_date,end_date,monday,tuesday,wednesday,thursday,friday,saturday,sunday
+Talv_26/27-Fr,20260831,20270606,0,0,0,0,1,0,0
+Talv_26/27-MoWeTh,20260831,20270606,1,0,1,1,0,0,0
+Talv_26/27-Sa,20260831,20270606,0,0,0,0,0,1,0
+Talv_26/27-Su,20260831,20270606,0,0,0,0,0,0,1
+Talv_26/27-Tu,20260831,20270606,0,1,0,0,0,0,0
