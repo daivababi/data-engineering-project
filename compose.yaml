@@ -132,6 +132,23 @@ services:
         condition: service_healthy
     restart: "no"
 
+  dbt:
+    image: ghcr.io/dbt-labs/dbt-postgres:latest
+    container_name: project18-dbt
+    entrypoint: ["/bin/sh", "-c"]
+    command: "tail -f /dev/null"
+    volumes:
+      - ./dbt:/dbt
+    environment:
+      DBT_PROJECT_DIR: /dbt
+      DBT_PROFILES_DIR: /dbt
+    depends_on:
+      postgres:
+        condition: service_healthy
+    tty: true
+    stdin_open: true
+    restart: always 
+
 volumes:
   postgres_data:
   pgadmin_data:
