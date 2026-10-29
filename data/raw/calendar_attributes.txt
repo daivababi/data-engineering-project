@@ -1,0 +1,6 @@
+service_id,service_description
+Talv_26/27-Fr,Talv_26/27-Fr
+Talv_26/27-MoWeTh,Talv_26/27-MoWeTh
+Talv_26/27-Sa,Talv_26/27-Sa
+Talv_26/27-Su,Talv_26/27-Su
+Talv_26/27-Tu,Talv_26/27-Tu

@@ -1,0 +1,19 @@
+route_id,competent_authority
+b4c5c0d01f6e3d5b5d2ba2ef83fd5034,Tartu linn
+ad7be154fae9ca223ff7c9fb38e7cf97,Tartu linn
+8516c6528db5d744a547729fe69668fc,Tartu linn
+tartulinn31hansa,Tartu linn
+82f00cbb707de581e42b137af67c479f,Tartu linn
+f317f9d90c9f9470b9a73398a1c4a20c,Tartu linn
+3f4ed538859451408434b050dbfda339,Tartu linn
+3ef88e812ba19553a78abfe309c76563,Tartu linn
+99ac18f3014c813da99ec92195e69748,Tartu linn
+05092b4bdb4130628ca065c53f8a3969,Tartu linn
+24c4971d9b648771df5bd2c4babd9ab5,Tartu linn
+tartulinn31rhansa,Tartu linn
+1dde0e81dd0007b4048bd3389297e33a,Tartu linn
+ae613439c9ac436afef59857fcdabebf,Tartu linn
+86346d334e174d9f954b528cf2bfe891,Tartu linn
+0e3de04a1df6babfaeff75ebab18bcc3,Tartu linn
+dbc1a3729774a1558171052a7e5d8490,Tartu linn
+d4de616f8dcd383260aab8f12274382b,Tartu linn

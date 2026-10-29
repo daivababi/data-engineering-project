@@ -1,0 +1,4 @@
+agency_id,agency_name,agency_url,agency_timezone,agency_phone,agency_fare_url,agency_lang,agency_email
+10085032,GoBus AS,http://www.gobus.ee,Europe/Tallinn,+372 640 4000,https://tartu.pilet.ee/et/home,et,klienditugi@gobus.ee
+10077848,SEBE Aktsiaselts,https://www.sebe.ee/,Europe/Tallinn,+372 6064969,https://tartu.pilet.ee/et/home,et,info@sebe.ee
+10230847,HANSABUSS AS,https://hansabuss.ee/,Europe/Tallinn,+372 5213555,https://tartu.pilet.ee/et/home,et,tartu@hansaliinid.ee
