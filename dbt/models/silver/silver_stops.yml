@@ -1,0 +1,23 @@
+version: 2
+
+models:
+  - name: silver_stops
+    description: "Cleaned bus stops for Tartu city (stop_area = 'Tartu linn')."
+    columns:
+      - name: stop_id
+        description: "Unique stop identifier."
+        tests:
+          - unique
+          - not_null
+      - name: stop_name
+        tests:
+          - not_null
+      - name: stop_lat
+        tests:
+          - not_null
+      - name: stop_lon
+        tests:
+          - not_null
+      - name: stop_area
+        tests:
+          - not_null

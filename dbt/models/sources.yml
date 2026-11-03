@@ -1,0 +1,16 @@
+version: 2
+
+sources:
+  - name: bronze
+    schema: bronze
+    tables:
+      - name: raw_stops
+        description: "Raw GTFS bus stops loaded from data/raw/stops.txt"
+        columns:
+          - name: stop_id
+            tests:
+              - unique
+              - not_null
+          - name: stop_name
+            tests:
+              - not_null

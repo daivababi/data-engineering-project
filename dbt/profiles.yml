@@ -1,0 +1,12 @@
+tartu_bus:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: postgres
+      user: "{{ env_var('POSTGRES_USER', 'postgres') }}"
+      password: "{{ env_var('POSTGRES_PASSWORD', 'postgres') }}"
+      port: 5432
+      dbname: "{{ env_var('POSTGRES_DB', 'tartucitybuses') }}"
+      schema: public
+      threads: 4

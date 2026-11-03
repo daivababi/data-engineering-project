@@ -1,0 +1,41 @@
+version: 2
+
+models:
+  - name: dim_stop
+    description: >
+      SCD Type 2 dimension of Tartu city bus stops (filtered to stop_area = 'Tartu linn').
+      Grain: one row per stop_id per validity period.
+    columns:
+      - name: stop_key
+        description: "Surrogate key (md5 of stop_id)."
+        tests:
+          - unique
+          - not_null
+      - name: stop_id
+        description: "Natural key from the source stop registry."
+        tests:
+          - not_null
+      - name: stop_name
+        description: "Human-readable stop name."
+        tests:
+          - not_null
+      - name: latitude
+        description: "WGS84 latitude of the stop."
+        tests:
+          - not_null
+      - name: longitude
+        description: "WGS84 longitude of the stop."
+        tests:
+          - not_null
+      - name: valid_from_date_key
+        description: "FK to dim_date.date_key — first date this version is valid."
+        tests:
+          - not_null
+      - name: valid_to_date_key
+        description: "FK to dim_date.date_key — last date this version is valid; 99991231 means open-ended."
+        tests:
+          - not_null
+      - name: is_current
+        description: "TRUE for the currently active version of the stop."
+        tests:
+          - not_null

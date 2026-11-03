@@ -2,3 +2,15 @@
 logs/
 .vscode
 data/ridango_responses
+# dbt artifacts
+dbt/target/
+dbt/logs/
+dbt/dbt_packages/
+dbt/.user.yml
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# local docker override
+Dockerfile.local
