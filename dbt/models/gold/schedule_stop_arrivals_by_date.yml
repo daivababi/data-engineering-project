@@ -1,0 +1,32 @@
+version: 2
+
+models:
+  - name: schedule_stop_arrivals_by_date
+    description: >
+      Date-specific scheduled arrivals. Uses the recurring GTFS calendar and
+      applies calendar_dates additions/removals. Materialized as a view to
+      avoid storing a repeated trip-stop row for every service date.
+    columns:
+      - name: scheduled_arrival_key
+        tests:
+          - unique
+          - not_null
+      - name: service_date
+        tests:
+          - not_null
+      - name: trip_id
+        tests:
+          - not_null
+      - name: stop_id
+        tests:
+          - not_null
+      - name: service_id
+        tests:
+          - not_null
+      - name: service_date_source
+        tests:
+          - accepted_values:
+              values: ['regular_calendar', 'added_exception']
+      - name: arrival_time
+        tests:
+          - not_null

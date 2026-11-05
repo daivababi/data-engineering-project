@@ -1,0 +1,41 @@
+version: 2
+
+models:
+  - name: schedule_stop_arrivals
+    description: >
+      Scheduled arrivals at one row per trip-stop occurrence, limited to
+      stops represented in gold.dim_stop. service_id identifies the GTFS
+      service calendar; arrival_offset_seconds preserves times after midnight.
+    columns:
+      - name: schedule_key
+        tests:
+          - unique
+          - not_null
+      - name: trip_key
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_trip')
+              field: trip_key
+      - name: stop_key
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_stop')
+              field: stop_key
+      - name: stop_sequence
+        tests:
+          - not_null
+      - name: service_id
+        tests:
+          - not_null
+      - name: day_type
+        description: >
+          Recurring weekday group, e.g. MoWeTh or Sa. Null when the GTFS
+          service is defined only by calendar_dates.
+      - name: arrival_time
+        tests:
+          - not_null
+      - name: arrival_offset_seconds
+        tests:
+          - not_null

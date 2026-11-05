@@ -6,21 +6,41 @@
 
 The GTFS feed is loaded from `data/raw` into PostgreSQL `bronze.raw_*` tables
 by the manually triggered `ingest_gtfs` Airflow DAG. dbt currently builds
-`silver_stops`, `silver_routes`, and `silver_trips`, followed by the Gold
-dimensions `dim_stop` and `dim_trip`.
+`silver_stops`, `silver_routes`, `silver_trips`, `silver_stop_times`,
+`silver_calendar`, `silver_calendar_dates`, and `silver_service_dates`,
+followed by the Gold dimensions `dim_stop` and `dim_trip` and the Gold
+`schedule_stop_arrivals` and `schedule_stop_arrivals_by_date` models.
 
 `dim_trip` has one row per GTFS `trip_id` and stores trip-level details such
 as route, service, direction, and headsign. It intentionally does not store a
 stop or scheduled arrival: those vary by stop and belong in a separate
-trip-stop schedule model. To produce the actual timetable, the next models
-need to clean `raw_stop_times`, `raw_calendar`, and `raw_calendar_dates`, then
-join them to trips, routes, and stops.
+trip-stop schedule model. The recurring schedule joins stop times to trips,
+routes, stops, and the recurring service calendar. It includes the service's
+weekday group and validity dates.
+The date-specific view `gold.schedule_stop_arrivals_by_date` expands active
+service dates and applies `raw_calendar_dates`: exception type 1 adds service
+even outside a recurring calendar's date range, and exception type 2 removes
+it. Services defined only by `calendar_dates` are also included. Query that
+view by `service_date` for a holiday-aware timetable. It is a view to avoid
+persisting repeated trip-stop rows for every date in the feed's validity period.
+
+Generate timetable matrices from the recurring schedule with:
+
+```powershell
+python scripts\generate_line_matrix.py
+```
+
+The script reads PostgreSQL settings from the project `.env` file (or
+`POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, and `POSTGRES_PORT`
+environment variables) and writes CSVs to `csv_data/matrices`. The default
+host port is `5434`; these matrices group by recurring `day_type`, not a
+specific holiday date.
 
 Build and test the current trip models with:
 
 ```bash
-docker compose exec dbt dbt run --select silver_routes silver_trips dim_trip
-docker compose exec dbt dbt test --select silver_routes silver_trips dim_trip
+docker compose exec dbt dbt run --select +schedule_stop_arrivals_by_date
+docker compose exec dbt dbt test --select +schedule_stop_arrivals_by_date
 ```
 
 The root `ddl/`, `dml/`, and `queries/` files below describe a separate legacy
@@ -220,3 +240,9 @@ Start the services with Docker Compose, then trigger `ingest_gtfs` from the
 Airflow UI. The source data is mounted read-only into Airflow, and the DAG
 connects to the project PostgreSQL service using the `POSTGRES_*` settings.
 The run can be repeated after replacing the GTFS files.
+docker compose up -d
+docker compose ps
+docker compose exec airflow-scheduler airflow dags trigger ingest_gtfs
+
+# generate csv_data for arrivals 
+python scripts\generate_line_matrix.py

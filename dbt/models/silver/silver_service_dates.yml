@@ -1,0 +1,23 @@
+version: 2
+
+models:
+  - name: silver_service_dates
+    description: >
+      One row per GTFS service active on a date. Weekly calendar service is
+      expanded over its validity period, exception_type 1 adds service, and
+      exception_type 2 removes it.
+    columns:
+      - name: service_date_key
+        tests:
+          - unique
+          - not_null
+      - name: service_id
+        tests:
+          - not_null
+      - name: service_date
+        tests:
+          - not_null
+      - name: service_date_source
+        tests:
+          - accepted_values:
+              values: ['regular_calendar', 'added_exception']
