@@ -2,7 +2,33 @@
 
 **Group 18** — Data Architecture & Modeling
 
-## Data Dictionary
+## Current GTFS/dbt pipeline
+
+The GTFS feed is loaded from `data/raw` into PostgreSQL `bronze.raw_*` tables
+by the manually triggered `ingest_gtfs` Airflow DAG. dbt currently builds
+`silver_stops`, `silver_routes`, and `silver_trips`, followed by the Gold
+dimensions `dim_stop` and `dim_trip`.
+
+`dim_trip` has one row per GTFS `trip_id` and stores trip-level details such
+as route, service, direction, and headsign. It intentionally does not store a
+stop or scheduled arrival: those vary by stop and belong in a separate
+trip-stop schedule model. To produce the actual timetable, the next models
+need to clean `raw_stop_times`, `raw_calendar`, and `raw_calendar_dates`, then
+join them to trips, routes, and stops.
+
+Build and test the current trip models with:
+
+```bash
+docker compose exec dbt dbt run --select silver_routes silver_trips dim_trip
+docker compose exec dbt dbt test --select silver_routes silver_trips dim_trip
+```
+
+The root `ddl/`, `dml/`, and `queries/` files below describe a separate legacy
+sample star schema for delay analysis; they are not the current dbt models.
+They remain in the repository for now and are also installed by PostgreSQL
+container initialization on a new database volume.
+
+## Legacy SQL demo data dictionary
 
 ### fact_stop_arrival
 
@@ -20,7 +46,10 @@ Stores all events of a bus reaching a stop on its route.
 | delay_minutes | INT | Difference in minutes between the scheduled and actual arrival times |
 | delay_severity | VARCHAR(20) | Delay severity category |
 
-### dim_trip
+The legacy SQL `dim_trip` is trip-stop-shaped. It is distinct from the current
+dbt `gold.dim_trip`, which has one row per GTFS trip.
+
+### Legacy dim_trip
 
 Stores the bus schedule.
 
@@ -163,6 +192,11 @@ ORDER BY year, month;
 │   ├── 03_delays_by_stop.sql           # Q3: delays by bus stop
 │   ├── 04_delays_by_time.sql           # Q4: delays by time of day / weekday
 │   └── 05_reliability_over_time.sql    # Q5: reliability trend over time
+├── dags/                               # Airflow ingestion DAGs
+├── dbt/models/
+│   ├── silver/                         # Cleaned GTFS models
+│   └── gold/                           # Analytics dimensions
+├── data/raw/                           # Local GTFS feed files
 └── docs/                               # Architecture and schema diagrams
 ```
 ## How to Run
@@ -174,3 +208,15 @@ psql -d tartu_bus -f dml/01_sample_dim_data.sql
 psql -d tartu_bus -f dml/02_sample_fact_data.sql
 psql -d tartu_bus -f queries/01_delay_categories.sql
 ```
+
+## Load the GTFS feed into Bronze
+
+The `ingest_gtfs` Airflow DAG loads each `.txt` file in `data/raw` into a
+`bronze.raw_<filename>` table. Source columns are stored as text, with a
+`loaded_at` timestamp added for load tracking. Each run replaces the contents
+of these raw tables, and all tables are loaded in one transaction.
+
+Start the services with Docker Compose, then trigger `ingest_gtfs` from the
+Airflow UI. The source data is mounted read-only into Airflow, and the DAG
+connects to the project PostgreSQL service using the `POSTGRES_*` settings.
+The run can be repeated after replacing the GTFS files.
