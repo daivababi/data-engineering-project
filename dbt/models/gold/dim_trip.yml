@@ -1,0 +1,25 @@
+version: 2
+
+models:
+  - name: dim_trip
+    description: >
+      GTFS trip dimension at one row per trip_id. Stop-level scheduled
+      arrivals belong in a separate trip-stop schedule model.
+    columns:
+      - name: trip_key
+        description: "Deterministic surrogate key derived from trip_id."
+        tests:
+          - unique
+          - not_null
+      - name: trip_id
+        description: "GTFS natural key for a scheduled trip."
+        tests:
+          - unique
+          - not_null
+      - name: route_id
+        tests:
+          - not_null
+      - name: service_id
+        description: "GTFS service calendar key used to determine operating dates."
+        tests:
+          - not_null

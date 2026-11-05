@@ -1,0 +1,19 @@
+version: 2
+
+models:
+  - name: silver_trips
+    description: "Cleaned GTFS trips, one row per trip_id."
+    columns:
+      - name: trip_id
+        tests:
+          - unique
+          - not_null
+      - name: route_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('silver_routes')
+              field: route_id
+      - name: service_id
+        tests:
+          - not_null
