@@ -1,0 +1,3 @@
+# Keep pip from upgrading the Airflow version supplied by airflow.Dockerfile.
+apache-airflow==2.8.1
+apache-airflow-providers-postgres==5.13.0

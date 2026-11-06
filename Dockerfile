@@ -1,12 +1,14 @@
-FROM postgres:16-alpine
+FROM postgres:16.4
 
 # Set up the environment for running the Ridango API poll script
-RUN apk add --no-cache python3 py3-pip py3-virtualenv \
-    && virtualenv /opt/venv
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends python3 python3-venv \
+    && rm -rf /var/lib/apt/lists/* \
+    && python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 WORKDIR /app
-COPY requirements.txt /tmp/requirements.txt
-RUN pip install --no-cache-dir -r /tmp/requirements.txt
+COPY requirements-poller.txt /tmp/requirements-poller.txt
+RUN pip install --no-cache-dir -r /tmp/requirements-poller.txt
 COPY src/poll_ridango.py /app/src/poll_ridango.py
 
 RUN mkdir -p /app/data/raw
