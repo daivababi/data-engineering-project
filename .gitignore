@@ -7,7 +7,9 @@ dbt/target/
 dbt/logs/
 dbt/dbt_packages/
 dbt/.user.yml
-dags/__pycache__
+# Python bytecode and cache directories
+__pycache__/
+*.py[cod]
 
 # macOS
 .DS_Store
