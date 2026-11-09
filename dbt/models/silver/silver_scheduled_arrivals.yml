@@ -1,0 +1,44 @@
+version: 2
+
+models:
+  - name: silver_scheduled_arrivals
+    description: >
+      Scheduled GTFS arrival at each Tartu stop for each active service date.
+      This model contains timetable data only, not observed arrivals or delays.
+    columns:
+      - name: scheduled_arrival_key
+        description: "Deterministic key for a service date, trip, and stop sequence."
+        tests:
+          - unique
+          - not_null
+      - name: service_id
+        tests:
+          - not_null
+      - name: service_date
+        tests:
+          - not_null
+      - name: trip_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('silver_trips')
+              field: trip_id
+      - name: route_id
+        tests:
+          - not_null
+      - name: stop_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('silver_stops')
+              field: stop_id
+      - name: stop_sequence
+        tests:
+          - not_null
+      - name: scheduled_arrival_gtfs
+        tests:
+          - not_null
+      - name: scheduled_arrival
+        description: "Scheduled timestamp; may fall on the day after service_date."
+        tests:
+          - not_null

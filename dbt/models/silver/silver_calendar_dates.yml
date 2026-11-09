@@ -1,0 +1,18 @@
+version: 2
+
+models:
+  - name: silver_calendar_dates
+    description: "Typed GTFS service additions and removals for specific dates."
+    columns:
+      - name: service_id
+        tests:
+          - not_null
+      - name: service_date
+        tests:
+          - not_null
+      - name: exception_type
+        description: "GTFS exception type: 1 adds service; 2 removes service."
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2]

@@ -1,0 +1,27 @@
+version: 2
+
+models:
+  - name: silver_stop_times
+    description: >
+      Cleaned GTFS stop times, at one row per trip and stop sequence.
+      arrival_time is preserved in GTFS format; arrival_offset_seconds
+      supports service times after midnight such as 25:05:00.
+    columns:
+      - name: trip_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('silver_trips')
+              field: trip_id
+      - name: stop_id
+        tests:
+          - not_null
+      - name: stop_sequence
+        tests:
+          - not_null
+      - name: arrival_time
+        tests:
+          - not_null
+      - name: arrival_offset_seconds
+        tests:
+          - not_null
