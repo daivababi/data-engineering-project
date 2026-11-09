@@ -1,0 +1,41 @@
+version: 2
+
+models:
+  - name: silver_trip_stop_schedule
+    description: >
+      GTFS trip-stop schedule for Tartu-area stops. One row per trip and
+      stop sequence, with route and stop details attached.
+    columns:
+      - name: trip_stop_key
+        description: "Deterministic key for a trip and its stop sequence."
+        tests:
+          - unique
+          - not_null
+      - name: trip_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('silver_trips')
+              field: trip_id
+      - name: service_id
+        tests:
+          - not_null
+      - name: route_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('silver_routes')
+              field: route_id
+      - name: stop_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('silver_stops')
+              field: stop_id
+      - name: stop_sequence
+        tests:
+          - not_null
+      - name: arrival_offset_seconds
+        description: "Scheduled arrival as seconds from service-day midnight; may exceed 86400."
+        tests:
+          - not_null

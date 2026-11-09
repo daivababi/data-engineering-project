@@ -1,0 +1,20 @@
+version: 2
+
+models:
+  - name: silver_calendar
+    description: "Cleaned recurring GTFS service calendars."
+    columns:
+      - name: service_id
+        tests:
+          - unique
+          - not_null
+      - name: start_date
+        tests:
+          - not_null
+      - name: end_date
+        tests:
+          - not_null
+      - name: day_type
+        description: "Compact weekday label, for example MoWeTh or Sa."
+        tests:
+          - not_null
