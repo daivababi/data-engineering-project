@@ -25,3 +25,17 @@ sources:
       - name: raw_shapes
       - name: raw_stop_times
       - name: raw_trips
+      - name: raw_ridango_poll_events
+        description: "Raw MongoDB poll documents copied from the Ridango vehicle-status poller."
+        columns:
+          - name: mongo_id
+            tests:
+              - unique
+              - not_null
+          - name: poll_id
+            tests:
+              - unique
+              - not_null
+          - name: status
+            tests:
+              - not_null

@@ -85,6 +85,12 @@ services:
       GTFS_DB_NAME: ${POSTGRES_DB:-project18}
       GTFS_DB_USER: ${POSTGRES_USER:-project18}
       GTFS_DB_PASSWORD: ${POSTGRES_PASSWORD:-project18}
+      MONGO_DATABASE: ${MONGO_DATABASE:-tartu_bus}
+      MONGO_COLLECTION: ${MONGO_COLLECTION:-ridango_poll_events}
+      AIRFLOW_CONN_RIDANGO_MONGO: >-
+        {"conn_type":"generic","host":"mongodb","port":27017,"login":"${MONGO_INITDB_ROOT_USERNAME:-project18}","password":"${MONGO_INITDB_ROOT_PASSWORD:-project18}","extra":{"authSource":"admin"}}
+      AIRFLOW_CONN_WAREHOUSE_POSTGRES: >-
+        {"conn_type":"postgres","host":"postgres","port":5432,"login":"${POSTGRES_USER:-project18}","password":"${POSTGRES_PASSWORD:-project18}","schema":"${POSTGRES_DB:-project18}"}
     ports:
       - "${AIRFLOW_WEB_PORT:-8080}:8080"
     volumes:
