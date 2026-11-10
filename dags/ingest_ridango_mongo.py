@@ -114,14 +114,24 @@ INSERT_GPS_ARRIVAL_ESTIMATES_SQL = """
           ON stop.stop_id = schedule.stop_id
          AND stop.is_current
     ),
-    neighboring_positions AS (
+    ranked_stop_distances AS (
         SELECT
             stop_distances.*,
+            ROW_NUMBER() OVER (
+                PARTITION BY poll_id, vehicle_id, trip_id, service_date
+                ORDER BY distance_m, stop_sequence
+            ) AS nearest_stop_rank
+        FROM stop_distances
+    ),
+    neighboring_positions AS (
+        SELECT
+            ranked_stop_distances.*,
             LAG(distance_m) OVER position_order AS previous_distance_m,
             LAG(observed_at) OVER position_order AS previous_observed_at,
             LEAD(distance_m) OVER position_order AS next_distance_m,
-            LEAD(observed_at) OVER position_order AS next_observed_at
-        FROM stop_distances
+            LEAD(observed_at) OVER position_order AS next_observed_at,
+            LEAD(nearest_stop_rank) OVER position_order AS next_nearest_stop_rank
+        FROM ranked_stop_distances
         WINDOW position_order AS (
             PARTITION BY vehicle_id, trip_id, service_date, stop_id, stop_sequence
             ORDER BY observed_at, poll_id
@@ -130,7 +140,9 @@ INSERT_GPS_ARRIVAL_ESTIMATES_SQL = """
     confirmed_entries AS (
         SELECT *
         FROM neighboring_positions
-        WHERE previous_distance_m > %(radius_m)s
+        WHERE nearest_stop_rank = 1
+          AND next_nearest_stop_rank = 1
+          AND previous_distance_m > %(radius_m)s
           AND distance_m <= %(radius_m)s
           AND next_distance_m <= %(radius_m)s
           AND observed_at - previous_observed_at
