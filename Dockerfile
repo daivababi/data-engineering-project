@@ -18,3 +18,4 @@ COPY ddl/01_create_dim_tables.sql /docker-entrypoint-initdb.d/01_create_dim_tabl
 COPY dml/01_sample_dim_data.sql /docker-entrypoint-initdb.d/01_sample_dim_data.sql
 COPY ddl/02_create_fact_table.sql /docker-entrypoint-initdb.d/02_create_fact_table.sql
 COPY dml/02_sample_fact_data.sql /docker-entrypoint-initdb.d/02_sample_fact_data.sql
+COPY ddl/04_create_raw_ridango_poll_events.sql /docker-entrypoint-initdb.d/04_create_raw_ridango_poll_events.sql
