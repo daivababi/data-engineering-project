@@ -10,6 +10,7 @@ dbt/.user.yml
 # Python bytecode and cache directories
 __pycache__/
 *.py[cod]
+useful_commands.txt
 
 # macOS
 .DS_Store
