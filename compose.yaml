@@ -10,6 +10,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    command: ["postgres", "-c", "timezone=Europe/Tallinn"]
     restart: unless-stopped
     env_file:
       - .env
