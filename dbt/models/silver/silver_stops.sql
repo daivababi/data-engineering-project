@@ -1,4 +1,9 @@
-{{ config(materialized='table', unique_key='stop_id', schema='silver') }}
+{{ config(
+    materialized='table',
+    unique_key='stop_id',
+    schema='silver',
+    indexes=[{'columns': ['stop_id'], 'unique': true}]
+) }}
 
 SELECT
     stop_id,
