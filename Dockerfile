@@ -9,7 +9,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 WORKDIR /app
 COPY requirements-poller.txt /tmp/requirements-poller.txt
 RUN pip install --no-cache-dir -r /tmp/requirements-poller.txt
-COPY src/poll_ridango.py /app/src/poll_ridango.py
+COPY src/poll_ridango.py src/clean_ridango.py /app/src/
 
 RUN mkdir -p /app/data/raw
 COPY data/raw/ /app/data/raw/
