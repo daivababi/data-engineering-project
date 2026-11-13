@@ -16,4 +16,5 @@ SELECT
 FROM {{ source('bronze', 'raw_stops') }}
 WHERE stop_id   IS NOT NULL
   AND stop_name IS NOT NULL
-  AND stop_area = 'Tartu linn'
+  AND is_active
+  --AND stop_area = 'Tartu linn'

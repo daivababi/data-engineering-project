@@ -23,6 +23,8 @@ CREATE TABLE IF NOT EXISTS bronze.raw_stops (
     authority           TEXT,
     lest_x              DOUBLE PRECISION,
     lest_y              DOUBLE PRECISION,
+    file_version        TEXT,
+    is_active           BOOLEAN NOT NULL DEFAULT TRUE,
     loaded_at           TIMESTAMPTZ DEFAULT now()
 );
 
