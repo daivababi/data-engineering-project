@@ -71,7 +71,13 @@ def unprocessed_observations(connection):
             """,
             (FACT_GENERATOR_BATCH_SIZE,),
         )
-        return cursor.fetchall()
+        observations = cursor.fetchall()
+
+    # A SELECT starts a PostgreSQL transaction in psycopg2.  Do not leave that
+    # transaction idle between polling cycles: the cleaner runs startup DDL and
+    # may need a table lock.
+    connection.commit()
+    return observations
 
 
 def service_is_active(cursor, gtfs_trip_id, service_date) -> bool:
