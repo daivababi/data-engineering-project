@@ -3,11 +3,11 @@ version: 2
 models:
   - name: dim_stop
     description: >
-      SCD Type 2 dimension of Tartu city bus stops (filtered to stop_area = 'Tartu linn').
+      SCD Type 2 dimension sourced from dbt snapshots for Tartu city bus stops.
       Grain: one row per stop_id per validity period.
     columns:
       - name: stop_key
-        description: "Surrogate key (md5 of stop_id)."
+        description: "Unique snapshot version key."
         tests:
           - unique
           - not_null

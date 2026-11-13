@@ -14,6 +14,9 @@ sources:
           - name: stop_name
             tests:
               - not_null
+          - name: is_active
+            tests:
+              - not_null
       - name: raw_agency
       - name: raw_calendar
       - name: raw_calendar_attributes

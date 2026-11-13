@@ -23,6 +23,7 @@ JOIN {{ ref('dim_date') }} AS date_dim
     ON scheduled.service_date = date_dim.full_date
 JOIN {{ ref('dim_stop') }} AS stop_dim
     ON scheduled.stop_id = stop_dim.stop_id
-    AND stop_dim.is_current
+    AND scheduled.service_date >= TO_DATE(stop_dim.valid_from_date_key::text, 'YYYYMMDD')
+    AND scheduled.service_date <= TO_DATE(stop_dim.valid_to_date_key::text, 'YYYYMMDD')
 JOIN {{ ref('dim_trip') }} AS trip_dim
     ON scheduled.trip_id = trip_dim.trip_id

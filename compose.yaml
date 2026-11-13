@@ -10,6 +10,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    command: ["postgres", "-c", "timezone=Europe/Tallinn"]
     restart: unless-stopped
     env_file:
       - .env
@@ -67,6 +68,29 @@ services:
       POLL_INTERVAL_SECONDS: ${POLL_INTERVAL_SECONDS:-15}
     depends_on:
       mongodb:
+        condition: service_healthy
+    restart: unless-stopped
+
+  ridango-cleaner:
+    image: project18-ridango-cleaner
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["python", "/app/src/clean_ridango.py"]
+    environment:
+      MONGO_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME:-project18}:${MONGO_INITDB_ROOT_PASSWORD:-project18}@mongodb:27017/?authSource=admin
+      MONGO_DATABASE: ${MONGO_DATABASE:-tartu_bus}
+      MONGO_COLLECTION: ${MONGO_COLLECTION:-ridango_poll_events}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-project18}
+      POSTGRES_USER: ${POSTGRES_USER:-project18}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-project18}
+      CLEANER_INTERVAL_SECONDS: ${CLEANER_INTERVAL_SECONDS:-10}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      postgres:
         condition: service_healthy
     restart: unless-stopped
 

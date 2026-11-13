@@ -22,7 +22,8 @@ IDENTIFIER_PATTERN = re.compile(r"^[a-z][a-z0-9_]*$")
 def ingest_gtfs():
     @task
     def load_gtfs() -> None:
-        files = sorted(GTFS_DIR.glob("*.txt"))
+        # Stops have a separate DAG that owns bronze.raw_stops.
+        files = sorted(path for path in GTFS_DIR.glob("*.txt") if path.name != "stops.txt")
         if not files:
             raise FileNotFoundError(f"No GTFS .txt files found in {GTFS_DIR}")
 

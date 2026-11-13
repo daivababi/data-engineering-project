@@ -5,7 +5,7 @@ WITH service_dates AS (
     FROM {{ ref('silver_service_dates') }}
 )
 SELECT
-    TO_CHAR(full_date, 'DD.MM.YYYY')::integer AS date_key,
+    TO_CHAR(full_date, 'YYYYMMDD')::integer AS date_key,
     full_date,
     CASE EXTRACT(ISODOW FROM full_date)::integer
         WHEN 1 THEN 'Monday'
