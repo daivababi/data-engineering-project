@@ -60,7 +60,7 @@ def unprocessed_observations(connection):
                 observation.longitude,
                 observation.is_valid
             FROM silver.vehicle_observation AS observation
-            LEFT JOIN gold.stop_event_processing AS processed
+            LEFT JOIN silver.stop_event_processing AS processed
                 ON processed.source_poll_id = observation.source_poll_id
                 AND processed.source_item_index = observation.source_item_index
             WHERE processed.source_poll_id IS NULL
@@ -114,7 +114,7 @@ def closest_future_stop(cursor, observation):
         """
         WITH last_arrival AS (
             SELECT COALESCE(MAX(stop_sequence), -1) AS stop_sequence
-            FROM gold.fact_observed_stop_arrival
+            FROM silver.observed_stop_arrival
             WHERE gtfs_trip_id = %s
               AND service_date = %s
         ), candidates AS (
@@ -164,7 +164,7 @@ def closest_future_stop(cursor, observation):
 def mark_processed(cursor, poll_id, item_index, outcome, arrival_id=None) -> None:
     cursor.execute(
         """
-        INSERT INTO gold.stop_event_processing (
+        INSERT INTO silver.stop_event_processing (
             source_poll_id, source_item_index, outcome, arrival_id
         )
         VALUES (%s, %s, %s, %s)
@@ -211,7 +211,7 @@ def process_observation(connection, observation) -> str:
             ) = candidate
             cursor.execute(
                 """
-                INSERT INTO gold.fact_observed_stop_arrival (
+                INSERT INTO silver.observed_stop_arrival (
                     source_poll_id, source_item_index, device_id, gtfs_trip_id, line_no,
                     service_date, stop_id, stop_name, stop_sequence, scheduled_arrival,
                     actual_arrival, delay_minutes, distance_meters

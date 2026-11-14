@@ -23,8 +23,10 @@ def export_line_matrices_by_day_type():
             arrivals.trip_id,
             arrivals.stop_id,
             arrivals.stop_sequence,
-            arrivals.scheduled_arrival_hhmm AS arrival_time
-        FROM gold.fact_stop_arrival AS arrivals
+            split_part(arrivals.scheduled_arrival_gtfs, ':', 1)
+                || ':' || split_part(arrivals.scheduled_arrival_gtfs, ':', 2)
+                AS arrival_time
+        FROM silver.silver_scheduled_arrivals AS arrivals
         JOIN silver.silver_trips AS trips
             ON arrivals.trip_id = trips.trip_id
         LEFT JOIN silver.silver_calendar AS calendar

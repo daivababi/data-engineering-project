@@ -20,11 +20,10 @@ docker compose exec dbt dbt build
 ```
 
 `dim_trip` has one row per GTFS `trip_id` and stores trip-level details such
-as route, service, direction, and headsign. It intentionally does not store a
-stop or scheduled arrival: those vary by stop and belong in a separate
-trip-stop schedule model. To produce the actual timetable, the next models
-need to clean `raw_stop_times`, `raw_calendar`, and `raw_calendar_dates`, then
-join them to trips, routes, and stops.
+as route, service, direction, and headsign. Scheduled stop times are held in
+`silver.silver_scheduled_arrivals`. The persistent Ridango services write
+inferred stop events to `silver.observed_stop_arrival`; this is staging data
+for the final dbt-managed analytical fact table.
 
 The root `ddl/`, `dml/`, and `queries/` files below describe a separate legacy
 sample star schema for delay analysis; they are not the current dbt models.

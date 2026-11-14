@@ -1,6 +1,26 @@
-CREATE SCHEMA IF NOT EXISTS gold;
+CREATE SCHEMA IF NOT EXISTS silver;
 
-CREATE TABLE IF NOT EXISTS gold.fact_observed_stop_arrival (
+-- Migrate the former operational Gold tables into Silver. The final analytical
+-- fact table will be built by dbt from this detected-arrivals staging table.
+DO $$
+BEGIN
+    IF to_regclass('gold.stop_event_processing') IS NOT NULL
+       AND to_regclass('silver.stop_event_processing') IS NULL THEN
+        ALTER TABLE gold.stop_event_processing SET SCHEMA silver;
+    END IF;
+
+    IF to_regclass('gold.fact_observed_stop_arrival') IS NOT NULL
+       AND to_regclass('silver.observed_stop_arrival') IS NULL THEN
+        ALTER TABLE gold.fact_observed_stop_arrival SET SCHEMA silver;
+    END IF;
+
+    IF to_regclass('silver.fact_observed_stop_arrival') IS NOT NULL
+       AND to_regclass('silver.observed_stop_arrival') IS NULL THEN
+        ALTER TABLE silver.fact_observed_stop_arrival RENAME TO observed_stop_arrival;
+    END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS silver.observed_stop_arrival (
     arrival_id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     source_poll_id      UUID NOT NULL,
     source_item_index   INTEGER NOT NULL,
@@ -21,16 +41,16 @@ CREATE TABLE IF NOT EXISTS gold.fact_observed_stop_arrival (
         REFERENCES silver.vehicle_observation (source_poll_id, source_item_index)
 );
 
-ALTER TABLE gold.fact_observed_stop_arrival
+ALTER TABLE silver.observed_stop_arrival
     ADD COLUMN IF NOT EXISTS delay_minutes INTEGER;
 
-ALTER TABLE gold.fact_observed_stop_arrival
+ALTER TABLE silver.observed_stop_arrival
     ADD COLUMN IF NOT EXISTS line_no TEXT;
 
-ALTER TABLE gold.fact_observed_stop_arrival
+ALTER TABLE silver.observed_stop_arrival
     ADD COLUMN IF NOT EXISTS stop_name TEXT;
 
-UPDATE gold.fact_observed_stop_arrival AS fact
+UPDATE silver.observed_stop_arrival AS fact
 SET line_no = route.route_short_name
 FROM silver.silver_trips AS trip
 LEFT JOIN silver.silver_routes AS route
@@ -38,29 +58,29 @@ LEFT JOIN silver.silver_routes AS route
 WHERE fact.gtfs_trip_id = trip.trip_id
   AND fact.line_no IS NULL;
 
-UPDATE gold.fact_observed_stop_arrival AS fact
+UPDATE silver.observed_stop_arrival AS fact
 SET stop_name = stop.stop_name
 FROM silver.silver_stops AS stop
 WHERE fact.stop_id = stop.stop_id
   AND fact.stop_name IS NULL;
 
-UPDATE gold.fact_observed_stop_arrival
+UPDATE silver.observed_stop_arrival
 SET delay_minutes = GREATEST(
     0,
     FLOOR(EXTRACT(EPOCH FROM (actual_arrival - scheduled_arrival)) / 60)::INTEGER
 )
 WHERE delay_minutes IS NULL;
 
-ALTER TABLE gold.fact_observed_stop_arrival
+ALTER TABLE silver.observed_stop_arrival
     ALTER COLUMN delay_minutes SET NOT NULL;
 
-ALTER TABLE gold.fact_observed_stop_arrival
+ALTER TABLE silver.observed_stop_arrival
     DROP COLUMN IF EXISTS delay_seconds;
 
 CREATE INDEX IF NOT EXISTS ix_observed_stop_arrival_trip_date
-    ON gold.fact_observed_stop_arrival (gtfs_trip_id, service_date, stop_sequence);
+    ON silver.observed_stop_arrival (gtfs_trip_id, service_date, stop_sequence);
 
-CREATE TABLE IF NOT EXISTS gold.stop_event_processing (
+CREATE TABLE IF NOT EXISTS silver.stop_event_processing (
     source_poll_id      UUID NOT NULL,
     source_item_index   INTEGER NOT NULL,
     processed_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -68,7 +88,7 @@ CREATE TABLE IF NOT EXISTS gold.stop_event_processing (
         'invalid_observation', 'inactive_service', 'no_stop_within_radius',
         'arrival_recorded', 'arrival_already_recorded'
     )),
-    arrival_id          BIGINT REFERENCES gold.fact_observed_stop_arrival (arrival_id),
+    arrival_id          BIGINT REFERENCES silver.observed_stop_arrival (arrival_id),
     PRIMARY KEY (source_poll_id, source_item_index),
     FOREIGN KEY (source_poll_id, source_item_index)
         REFERENCES silver.vehicle_observation (source_poll_id, source_item_index)
