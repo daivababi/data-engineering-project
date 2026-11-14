@@ -47,7 +47,7 @@ def ingest_stops():
             reader = csv.DictReader(source)
             if not reader.fieldnames or not REQUIRED_COLUMNS.issubset(reader.fieldnames):
                 raise ValueError(
-                    "Missing required stops.csv columns: "
+                    "Missing required stops.txt columns: "
                     f"{sorted(REQUIRED_COLUMNS - set(reader.fieldnames or []))}"
                 )
 
