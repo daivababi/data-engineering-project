@@ -1,4 +1,8 @@
-{{ config(materialized='table', schema='silver') }}
+{{ config(
+    materialized='table',
+    schema='silver',
+    indexes=[{'columns': ['trip_id', 'stop_sequence']}]
+) }}
 
 WITH source AS (
     SELECT

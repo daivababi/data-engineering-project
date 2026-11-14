@@ -94,6 +94,26 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  ridango-fact-generator:
+    image: project18-ridango-fact-generator
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["python", "/app/src/generate_stop_events.py"]
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-project18}
+      POSTGRES_USER: ${POSTGRES_USER:-project18}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-project18}
+      FACT_GENERATOR_INTERVAL_SECONDS: ${FACT_GENERATOR_INTERVAL_SECONDS:-10}
+      FACT_GENERATOR_BATCH_SIZE: ${FACT_GENERATOR_BATCH_SIZE:-500}
+      STOP_RADIUS_METERS: ${STOP_RADIUS_METERS:-25}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
   mongo-express:
     image: mongo-express:1.0.2
     ports:

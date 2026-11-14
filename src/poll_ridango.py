@@ -11,6 +11,7 @@ import time
 import uuid
 from datetime import UTC, datetime
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import websocket
 from pymongo import MongoClient
@@ -28,6 +29,7 @@ MONGO_DATABASE = os.getenv("MONGO_DATABASE", "tartu_bus")
 MONGO_COLLECTION = os.getenv("MONGO_COLLECTION", "ridango_poll_events")
 POLL_INTERVAL_SECONDS = float(os.getenv("POLL_INTERVAL_SECONDS", "15"))
 WEBSOCKET_TIMEOUT_SECONDS = float(os.getenv("WEBSOCKET_TIMEOUT_SECONDS", "30"))
+TALLINN_TIMEZONE = ZoneInfo("Europe/Tallinn")
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
@@ -41,6 +43,10 @@ class RidangoApiError(Exception):
 
 def utc_now() -> datetime:
     return datetime.now(UTC)
+
+
+def tallinn_timestamp(timestamp: datetime) -> str:
+    return timestamp.astimezone(TALLINN_TIMEZONE).isoformat(timespec="milliseconds")
 
 
 def poll_id(started_at: datetime, payload: Any) -> str:
@@ -73,10 +79,13 @@ def fetch_response() -> list[dict[str, Any]]:
 
 
 def successful_event(started_at: datetime, payload: list[dict[str, Any]]) -> dict[str, Any]:
+    finished_at = utc_now()
     return {
         "poll_id": poll_id(started_at, payload),
         "started_at": started_at,
-        "finished_at": utc_now(),
+        "finished_at": finished_at,
+        "started_at_tallinn": tallinn_timestamp(started_at),
+        "finished_at_tallinn": tallinn_timestamp(finished_at),
         "status": "success" if payload else "empty",
         "vehicle_count": len(payload),
         "subscription": SUBSCRIPTION,
@@ -86,10 +95,13 @@ def successful_event(started_at: datetime, payload: list[dict[str, Any]]) -> dic
 
 def failed_event(started_at: datetime, error: Exception) -> dict[str, Any]:
     payload = error.payload if isinstance(error, RidangoApiError) else None
+    finished_at = utc_now()
     return {
         "poll_id": poll_id(started_at, payload),
         "started_at": started_at,
-        "finished_at": utc_now(),
+        "finished_at": finished_at,
+        "started_at_tallinn": tallinn_timestamp(started_at),
+        "finished_at_tallinn": tallinn_timestamp(finished_at),
         "status": "api_error" if payload is not None else "error",
         "error_type": type(error).__name__,
         "error_message": str(error),

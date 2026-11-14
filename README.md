@@ -4,24 +4,26 @@
 
 ## Current GTFS/dbt pipeline
 
-The GTFS feed is loaded from `data/raw` into PostgreSQL `bronze.raw_*` tables
-by the manually triggered `ingest_gtfs` Airflow DAG. dbt currently builds
-`silver_stops`, `silver_routes`, and `silver_trips`, followed by the Gold
-dimensions `dim_stop` and `dim_trip`.
+The GTFS feed is loaded from `data/raw` into PostgreSQL `bronze.raw_*` tables.
+The manually triggered `ingest_gtfs` Airflow DAG fully replaces the raw GTFS
+tables on each run, except `raw_stops`, which is managed by `ingest_stops`.
+The daily `ingest_stops` DAG upserts the full stops feed and marks stops missing
+from a successfully loaded feed inactive instead of deleting their history.
 
-`dim_trip` has one row per GTFS `trip_id` and stores trip-level details such
-as route, service, direction, and headsign. It intentionally does not store a
-stop or scheduled arrival: those vary by stop and belong in a separate
-trip-stop schedule model. To produce the actual timetable, the next models
-need to clean `raw_stop_times`, `raw_calendar`, and `raw_calendar_dates`, then
-join them to trips, routes, and stops.
-
-Build and test the current trip models with:
+After ingestion, run `dbt build` to refresh the Silver and Gold models and the
+`dim_stop_snapshot`. The snapshot tracks stop changes and deactivations, and
+`dim_stop` keeps the historical Tartu versions. New and removed routes are
+reflected when `ingest_gtfs` reloads `routes.txt` and dbt is rebuilt.
 
 ```bash
-docker compose exec dbt dbt run --select silver_routes silver_trips dim_trip
-docker compose exec dbt dbt test --select silver_routes silver_trips dim_trip
+docker compose exec dbt dbt build
 ```
+
+`dim_trip` has one row per GTFS `trip_id` and stores trip-level details such
+as route, service, direction, and headsign. Scheduled stop times are held in
+`silver.silver_scheduled_arrivals`. The persistent Ridango services write
+inferred stop events to `silver.observed_stop_arrival`; this is staging data
+for the final dbt-managed analytical fact table.
 
 The root `ddl/`, `dml/`, and `queries/` files below describe a separate legacy
 sample star schema for delay analysis; they are not the current dbt models.
@@ -211,12 +213,17 @@ psql -d tartu_bus -f queries/01_delay_categories.sql
 
 ## Load the GTFS feed into Bronze
 
-The `ingest_gtfs` Airflow DAG loads each `.txt` file in `data/raw` into a
-`bronze.raw_<filename>` table. Source columns are stored as text, with a
-`loaded_at` timestamp added for load tracking. Each run replaces the contents
-of these raw tables, and all tables are loaded in one transaction.
+The `ingest_gtfs` Airflow DAG loads each `.txt` file in `data/raw` except
+`stops.txt` into a `bronze.raw_<filename>` table. Source columns are stored as
+text, with a `loaded_at` timestamp added for load tracking. Each run replaces
+the contents of these raw tables, and all tables are loaded in one transaction.
+Stops are loaded separately by `ingest_stops` so the raw stop table is not
+overwritten by the generic loader.
 
 Start the services with Docker Compose, then trigger `ingest_gtfs` from the
 Airflow UI. The source data is mounted read-only into Airflow, and the DAG
 connects to the project PostgreSQL service using the `POSTGRES_*` settings.
-The run can be repeated after replacing the GTFS files.
+After either ingestion DAG succeeds, run `docker compose exec dbt dbt build`
+to refresh models and capture stop history. If a GTFS file is absent, its
+previous raw table is not automatically removed; keep the feed's expected files
+in `data/raw` when loading a new feed version.
