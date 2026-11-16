@@ -55,6 +55,23 @@ services:
       retries: 10
     restart: unless-stopped
 
+  mongo-seed:
+    image: mongo:8.0.34
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-project18}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-project18}
+      MONGO_DATABASE: ${MONGO_DATABASE:-tartu_bus}
+      MONGO_COLLECTION: ${MONGO_COLLECTION:-ridango_poll_events}
+      MONGO_SEED_FILE: ${MONGO_SEED_FILE:-/seed/ridango_poll_events_2026-11-16T1200-1300_tallinn.ndjson.gz}
+    volumes:
+      - ./data/seed:/seed:ro
+      - ./scripts/seed_mongodb.sh:/seed_mongodb.sh:ro
+    command: ["/bin/sh", "/seed_mongodb.sh"]
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    restart: "no"
+
   ridango-poller:
     image: project18-ridango-poller
     build:
@@ -67,8 +84,8 @@ services:
       MONGO_COLLECTION: ${MONGO_COLLECTION:-ridango_poll_events}
       POLL_INTERVAL_SECONDS: ${POLL_INTERVAL_SECONDS:-15}
     depends_on:
-      mongodb:
-        condition: service_healthy
+      mongo-seed:
+        condition: service_completed_successfully
     restart: unless-stopped
 
   ridango-cleaner:
@@ -88,8 +105,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-project18}
       CLEANER_INTERVAL_SECONDS: ${CLEANER_INTERVAL_SECONDS:-10}
     depends_on:
-      mongodb:
-        condition: service_healthy
+      mongo-seed:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
     restart: unless-stopped
