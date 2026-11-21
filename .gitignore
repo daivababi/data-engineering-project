@@ -18,3 +18,5 @@ useful_commands.txt
 
 # local docker override
 Dockerfile.local
+
+data/gtfs_last_modified.txt
