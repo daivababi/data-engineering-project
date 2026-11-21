@@ -9,7 +9,9 @@ import psycopg2
 from airflow.decorators import dag, task
 from psycopg2 import sql
 
-GTFS_DIR = Path("/opt/airflow/data/raw")
+GTFS_DIR = Path(
+    os.getenv("GTFS_DIR", "/opt/airflow/data/raw")
+)
 IDENTIFIER_PATTERN = re.compile(r"^[a-z][a-z0-9_]*$")
 
 

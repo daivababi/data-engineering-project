@@ -9,7 +9,10 @@ import psycopg2
 from airflow.decorators import dag, task
 from airflow.models.param import Param
 
-STOPS_FILE = "/opt/airflow/data/raw/stops.txt"
+STOPS_FILE = os.getenv(
+    "STOPS_FILE",
+    "/opt/airflow/data/raw/stops.txt"
+)
 REQUIRED_COLUMNS = {"stop_id", "stop_name", "stop_lat", "stop_lon"}
 BATCH_SIZE = 1000
 
