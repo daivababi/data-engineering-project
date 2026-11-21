@@ -1,5 +1,6 @@
 from airflow.decorators import dag, task
 from datetime import datetime
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 
 from pathlib import Path
 import requests
@@ -85,13 +86,29 @@ def update_gtfs():
         with zipfile.ZipFile(ZIP_PATH, "r") as archive:
             archive.extractall(EXTRACT_DIR)
 
+            print("ZIP contents:")
+            print(archive.namelist())
+
         print(f"GTFS extracted to {EXTRACT_DIR}")
+
+        print("Files after extraction:")
+        print(list(EXTRACT_DIR.glob("*")))
 
     check = check_source()
     changed = check_if_changed()
     download = download_and_extract_gtfs(changed)
 
-    check >> changed >> download
+    
+    trigger_gtfs = TriggerDagRunOperator(
+        task_id="trigger_ingest_gtfs",
+        trigger_dag_id="ingest_gtfs",
+)
 
+    trigger_stops = TriggerDagRunOperator(
+        task_id="trigger_ingest_stops",
+        trigger_dag_id="ingest_stops",
+)
+
+    check >> changed >> download >> trigger_gtfs >> trigger_stops
 
 update_gtfs()
