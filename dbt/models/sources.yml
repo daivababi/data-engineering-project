@@ -28,3 +28,30 @@ sources:
       - name: raw_shapes
       - name: raw_stop_times
       - name: raw_trips
+
+  - name: silver
+    schema: silver
+    tables:
+      - name: observed_stop_arrival
+        description: >
+          Fact table of observed bus stop arrivals.
+          Grain: one row per bus arrival at a stop (arrival_id is the primary key).
+          Measures: delay_minutes, distance_meters.
+        columns:
+          - name: arrival_id
+            description: "Unique arrival event ID."
+            tests:
+              - unique
+              - not_null
+          - name: stop_id
+            description: "Stop identifier."
+            tests:
+              - not_null
+          - name: gtfs_trip_id
+            description: "GTFS trip identifier."
+            tests:
+              - not_null
+          - name: delay_minutes
+            description: "Delay in minutes."
+            tests:
+              - not_null

@@ -3,17 +3,17 @@
 
 SELECT
     d.day_of_week,
-    EXTRACT(HOUR FROM f.scheduled_arrival) AS hour_of_day,
-    COUNT(*) AS total_arrivals,
-    SUM(CASE WHEN f.delay_minutes >= 2 THEN 1 ELSE 0 END) AS delayed_arrivals,
+    s.hour_of_day,
+    s.line_no,
+    s.stop_name,
+    SUM(s.total_arrivals) AS total_arrivals,
     ROUND(
-        100.0 * SUM(CASE WHEN f.delay_minutes >= 2 THEN 1 ELSE 0 END)
-        / COUNT(*),
+        SUM(s.total_arrivals * (100.0 - s.on_time_pct)) / SUM(s.total_arrivals),
         2
     ) AS delay_percentage
-FROM fact_stop_arrival f
-JOIN dim_date d ON f.date_key = d.date_key
-GROUP BY d.day_of_week, EXTRACT(HOUR FROM f.scheduled_arrival)
-HAVING COUNT(*) > 5
+FROM gold.stop_arrival_stats s
+JOIN gold.dim_date d ON s.date = d.full_date
+GROUP BY d.day_of_week, s.hour_of_day, s.line_no, s.stop_name
+HAVING SUM(s.total_arrivals) > 5
 ORDER BY delay_percentage DESC
 LIMIT 20;

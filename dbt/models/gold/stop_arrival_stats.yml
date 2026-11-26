@@ -1,0 +1,41 @@
+models:
+  - name: stop_arrival_stats
+    description: >
+      Aggregated stop arrival statistics for the dashboard.
+      Grain: one row per line + stop + date.
+      Built from the fact table silver.observed_stop_arrival.
+    columns:
+      - name: line_no
+        description: "Bus line number."
+        tests:
+          - not_null
+      - name: stop_id
+        description: "Stop identifier."
+        tests:
+          - not_null
+      - name: date
+        description: "Service date."
+        tests:
+          - not_null
+      - name: total_arrivals
+        description: "Total number of arrivals for the line + stop on that day."
+        tests:
+          - not_null
+      - name: avg_delay_minutes
+        description: "Average delay in minutes."
+        tests:
+          - not_null
+      - name: on_time_pct
+        description: "Percentage of arrivals on time (≤1 min delay)."
+        tests:
+          - not_null
+      - name: severe_delay_pct
+        description: "Percentage of severe delays (≥6 min delay)."
+        tests:
+          - not_null
+      - name: hour_of_day
+        description: "Hour of the day (0–23) when the arrival occurred."
+        tests:
+          - not_null
+          - accepted_values:
+              values: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
