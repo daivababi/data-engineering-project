@@ -8,6 +8,7 @@ from pathlib import Path
 import psycopg2
 from airflow.decorators import dag, task
 from psycopg2 import sql
+from airflow.operators.python import get_current_context
 
 GTFS_DIR = Path(
     os.getenv("GTFS_DIR", "/opt/airflow/data/raw")
@@ -24,10 +25,22 @@ IDENTIFIER_PATTERN = re.compile(r"^[a-z][a-z0-9_]*$")
 def ingest_gtfs():
     @task
     def load_gtfs() -> None:
-        # Stops have a separate DAG that owns bronze.raw_stops.
-        files = sorted(path for path in GTFS_DIR.glob("*.txt") if path.name != "stops.txt")
+        context = get_current_context()
+
+        dag_run = context.get("dag_run")
+        conf = dag_run.conf if dag_run and dag_run.conf else {}
+
+        gtfs_version = conf.get("gtfs_version", "manual")
+        gtfs_path = conf.get("gtfs_path")
+
+        if gtfs_path:
+            gtfs_dir = Path(gtfs_path)
+        else:
+            gtfs_dir = GTFS_DIR
+
+        files = sorted(path for path in gtfs_dir.glob("*.txt") if path.name != "stops.txt")
         if not files:
-            raise FileNotFoundError(f"No GTFS .txt files found in {GTFS_DIR}")
+            raise FileNotFoundError(f"No GTFS .txt files found in {gtfs_dir}")
 
         conn = psycopg2.connect(
             host=os.environ["GTFS_DB_HOST"],
@@ -57,13 +70,14 @@ def ingest_gtfs():
                             raise ValueError(f"Duplicate CSV headers in {path.name}")
 
                     table = sql.Identifier("bronze", table_name)
+                    stage = sql.Identifier(f"stage_{table_name}")
+
+                    column_definitions = sql.SQL(", ").join(
+                        sql.SQL("{} TEXT").format(sql.Identifier(column)) for column in columns
+                    )
                     cur.execute(
                         sql.SQL("CREATE TABLE IF NOT EXISTS {} ({})").format(
-                            table,
-                            sql.SQL(", ").join(
-                                sql.SQL("{} TEXT").format(sql.Identifier(column))
-                                for column in columns
-                            ),
+                            table, column_definitions
                         )
                     )
 
@@ -76,41 +90,55 @@ def ingest_gtfs():
                     cur.execute(
                         sql.SQL(
                             "ALTER TABLE {} ADD COLUMN IF NOT EXISTS "
-                            "loaded_at TIMESTAMPTZ NOT NULL DEFAULT now()"
+                            "file_version TEXT"
                         ).format(table)
                     )
-
                     cur.execute(
-                        """
-                        SELECT column_name, data_type
-                        FROM information_schema.columns
-                        WHERE table_schema = 'bronze' AND table_name = %s
-                        """,
-                        (table_name,),
+                        sql.SQL(
+                            "CREATE TEMP TABLE {} ({}) ON COMMIT DROP"
+                        ).format(stage, column_definitions)
                     )
-                    existing_types = dict(cur.fetchall())
-                    for column in columns:
-                        if existing_types[column] != "text":
-                            cur.execute(
-                                sql.SQL(
-                                    "ALTER TABLE {} ALTER COLUMN {} TYPE TEXT USING {}::TEXT"
-                                ).format(
-                                    table,
-                                    sql.Identifier(column),
-                                    sql.Identifier(column),
-                                )
-                            )
-
-                    cur.execute(sql.SQL("TRUNCATE TABLE {}").format(table))
                     copy_statement = sql.SQL(
                         "COPY {} ({}) FROM STDIN WITH (FORMAT CSV, HEADER TRUE)"
                     ).format(
-                        table,
-                        sql.SQL(", ").join(sql.Identifier(column) for column in columns),
+                        stage,
+                        sql.SQL(", ").join(
+                            sql.Identifier(column) for column in columns
+                        ),
                     )
-                    with path.open(encoding="utf-8-sig", newline="") as source:
-                        cur.copy_expert(copy_statement.as_string(conn), source)
-                    print(f"Loaded {cur.rowcount} rows into bronze.{table_name}")
+                    with path.open(
+                        encoding="utf-8-sig", newline=""
+                    ) as source:
+                        cur.copy_expert(
+                            copy_statement.as_string(conn), source
+                        )
+                    cur.execute(
+                        sql.SQL(
+                            "DELETE FROM {} WHERE file_version = %s"
+                        ).format(table),
+                        (gtfs_version,),
+                    )
+                    insert_columns = sql.SQL(", ").join(
+                        [sql.Identifier(column) for column in columns]
+                        + [sql.Identifier("file_version")]
+                    )
+
+                    select_columns = sql.SQL(", ").join(
+                        sql.Identifier(column) for column in columns
+                    )
+
+                    insert_statement = sql.SQL(
+                        "INSERT INTO {} ({}) SELECT {}, %s FROM {}"
+                    ).format(
+                        table,
+                        insert_columns,
+                        select_columns,
+                        stage,
+                    )
+
+                    cur.execute(insert_statement, (gtfs_version,))
+
+                    print(f"Loaded {cur.rowcount} rows into bronze.{table_name}, version {gtfs_version}")
         finally:
             conn.close()
 
