@@ -20,3 +20,4 @@ useful_commands.txt
 Dockerfile.local
 
 data/gtfs_last_modified.txt
+data/gtfs_versions/
