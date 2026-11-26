@@ -192,7 +192,7 @@ services:
     volumes:
       &airflow-common-volumes
       - ./dags:/opt/airflow/dags
-      - ./data:/opt/airflow/data:ro
+      - ./data:/opt/airflow/data
       - ./logs:/opt/airflow/logs
       - ./dbt:/dbt
     depends_on:
