@@ -159,7 +159,7 @@ def update_gtfs():
     
     dbt_build = BashOperator(
         task_id="dbt_build",
-        bash_command="cd /dbt && dbt run --select stop_arrival_stats",
+        bash_command="mkdir -p /tmp/dbt_logs /tmp/dbt_target && cd /dbt && dbt run --log-path /tmp/dbt_logs --target-path /tmp/dbt_target --select stop_arrival_stats",
     )
 
     check >> changed >> download >> trigger_gtfs >> trigger_stops >> dbt_build
