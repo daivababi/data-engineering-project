@@ -42,80 +42,30 @@ still need agreement with Daiva. Snapshot execution and the full post-ingestion
 refresh workflow also remain to be finalized. Do not treat stop-history handling
 as complete until those decisions and changes are made.
 
-The root `ddl/`, `dml/`, and `queries/` files below describe a separate legacy
-sample star schema for delay analysis; they are not the current dbt models.
-They remain in the repository for now and are also installed by PostgreSQL
-container initialization on a new database volume.
-
-## Legacy SQL demo data dictionary
-
-### fact_stop_arrival
-
-Stores all events of a bus reaching a stop on its route.
-
-| Column | Data Type | Description |
-|---|---|---|
-| arrival_key | INT | PK, identifies an arrival |
-| arrival_date_key | INT | FK to dim_date |
-| stop_key | INT | FK to dim_stop |
-| trip_key | INT | FK to dim_trip |
-| delay_causing_stop | INT | FK to dim_stop, identifying the stop that caused the first delay of this trip |
-| scheduled_arrival | TIME | Time of scheduled arrival to this stop |
-| actual_arrival | TIME | Time of actual arrival to this stop |
-| delay_minutes | INT | Difference in minutes between the scheduled and actual arrival times |
-| delay_severity | VARCHAR(20) | Delay severity category |
-
-The legacy SQL `dim_trip` is trip-stop-shaped. It is distinct from the current
-dbt `gold.dim_trip`, which has one row per GTFS trip.
-
-### Legacy dim_trip
-
-Stores the bus schedule.
-
-| Column | Data Type | Description |
-|---|---|---|
-| trip_key | INT | PK, identifies a trip stop |
-| stop_key | INT | FK to dim_stop |
-| valid_from_date_key | INT | FK to dim_date, identifying from which date the trip schedule is valid |
-| valid_to_date_key | INT | FK to dim_date, identifying until which date the trip schedule is valid |
-| scheduled_arrival | TIME | Scheduled arrival at the stop |
-| line_no | VARCHAR(20) | Bus line associated with the trip |
-| route | VARCHAR(100) | Route associated with the trip |
-
-### dim_stop
-
-Stores the bus stops' name and location.
-
-| Column | Data Type | Description |
-|---|---|---|
-| stop_key | INT | PK, identifies a trip stop |
-| valid_from_date_key | INT | FK to dim_date, identifying from which date the stop information is valid |
-| valid_to_date_key | INT | FK to dim_date, identifying until which date the stop information is valid |
-| stop_name | VARCHAR(100) | Name of the bus stop |
-| longitude | DECIMAL(9,6) | Longitude coordinate of the bus stop |
-| latitude | DECIMAL(8,6) | Latitude coordinate of the bus stop |
-
-### dim_date
-
-Stores date information.
-
-| Column | Data Type | Description |
-|---|---|---|
-| date_key | INT | PK, identifies a calendar date |
-| full_date | DATE | Full calendar date |
-| day_of_week | VARCHAR(10) | Name of the weekday |
-
 ## Demo Queries
 
 ### 1. What percentage of arrivals to a stop are either on time (up to 1 min delay), moderately delayed (2–5 min) or severely delayed (6+ min)?
 
 ```sql
-SELECT
-    delay_severity,
-    COUNT(*) AS arrival_count,
-    ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER (), 2) AS percentage
-FROM fact_stop_arrival
-GROUP BY delay_severity
+WITH totals AS (
+    SELECT
+        SUM(total_arrivals) AS grand_total,
+        SUM(total_arrivals * on_time_pct) AS on_time_weighted,
+        SUM(total_arrivals * moderate_delay_pct) AS moderate_weighted,
+        SUM(total_arrivals * severe_delay_pct) AS severe_weighted
+    FROM gold.stop_arrival_stats
+)
+SELECT 'on_time' AS delay_severity,
+       ROUND(on_time_weighted / grand_total, 2) AS percentage
+FROM totals
+UNION ALL
+SELECT 'moderate',
+       ROUND(moderate_weighted / grand_total, 2)
+FROM totals
+UNION ALL
+SELECT 'severe',
+       ROUND(severe_weighted / grand_total, 2)
+FROM totals
 ORDER BY percentage DESC;
 ```
 
@@ -123,17 +73,15 @@ ORDER BY percentage DESC;
 
 ```sql
 SELECT
-    t.line_no,
-    COUNT(*) AS total_arrivals,
-    SUM(CASE WHEN f.delay_minutes >= 2 THEN 1 ELSE 0 END) AS delayed_arrivals,
+    line_no,
+    SUM(total_arrivals) AS total_arrivals,
     ROUND(
-        100.0 * SUM(CASE WHEN f.delay_minutes >= 2 THEN 1 ELSE 0 END) / COUNT(*),
+        SUM(total_arrivals * (100.0 - on_time_pct)) / SUM(total_arrivals),
         2
     ) AS delay_percentage
-FROM fact_stop_arrival f
-JOIN dim_trip t ON f.trip_key = t.trip_key
-GROUP BY t.line_no
-HAVING COUNT(*) > 10
+FROM gold.stop_arrival_stats
+GROUP BY line_no
+HAVING SUM(total_arrivals) > 10
 ORDER BY delay_percentage DESC;
 ```
 
@@ -141,17 +89,15 @@ ORDER BY delay_percentage DESC;
 
 ```sql
 SELECT
-    s.stop_name,
-    COUNT(*) AS total_arrivals,
-    SUM(CASE WHEN f.delay_minutes >= 2 THEN 1 ELSE 0 END) AS delayed_arrivals,
+    stop_name,
+    SUM(total_arrivals) AS total_arrivals,
     ROUND(
-        100.0 * SUM(CASE WHEN f.delay_minutes >= 2 THEN 1 ELSE 0 END) / COUNT(*),
+        SUM(total_arrivals * (100.0 - on_time_pct)) / SUM(total_arrivals),
         2
     ) AS delay_percentage
-FROM fact_stop_arrival f
-JOIN dim_stop s ON f.stop_key = s.stop_key
-GROUP BY s.stop_name
-HAVING COUNT(*) > 20
+FROM gold.stop_arrival_stats
+GROUP BY stop_name
+HAVING SUM(total_arrivals) > 20
 ORDER BY delay_percentage DESC
 LIMIT 20;
 ```
@@ -161,50 +107,55 @@ LIMIT 20;
 ```sql
 SELECT
     d.day_of_week,
-    EXTRACT(HOUR FROM f.scheduled_arrival) AS hour_of_day,
-    COUNT(*) AS total_arrivals,
-    SUM(CASE WHEN f.delay_minutes >= 2 THEN 1 ELSE 0 END) AS delayed_arrivals,
+    s.hour_of_day,
+    s.line_no,
+    s.stop_name,
+    SUM(s.total_arrivals) AS total_arrivals,
     ROUND(
-        100.0 * SUM(CASE WHEN f.delay_minutes >= 2 THEN 1 ELSE 0 END) / COUNT(*),
+        SUM(s.total_arrivals * (100.0 - s.on_time_pct))
+            / NULLIF(SUM(s.total_arrivals), 0),
         2
     ) AS delay_percentage
-FROM fact_stop_arrival f
-JOIN dim_date d ON f.date_key = d.date_key
-GROUP BY d.day_of_week, EXTRACT(HOUR FROM f.scheduled_arrival)
-HAVING COUNT(*) > 5
-ORDER BY delay_percentage DESC;
+FROM gold.stop_arrival_stats s
+JOIN gold.dim_date d ON s.date = d.full_date
+GROUP BY d.day_of_week, s.hour_of_day, s.line_no, s.stop_name
+HAVING SUM(s.total_arrivals) > 0
+ORDER BY delay_percentage DESC
+LIMIT 20;
 ```
 
 ### 5. How does the reliability of the service change over time? (monthly trend)
 
 ```sql
 SELECT
-    EXTRACT(YEAR FROM d.full_date) AS year,
-    EXTRACT(MONTH FROM d.full_date) AS month,
-    COUNT(*) AS total_arrivals,
-    ROUND(AVG(f.delay_minutes), 2) AS avg_delay_minutes,
-    ROUND(100.0 * SUM(CASE WHEN f.delay_minutes <= 1 THEN 1 ELSE 0 END) / COUNT(*), 2) AS on_time_pct,
-    ROUND(100.0 * SUM(CASE WHEN f.delay_minutes BETWEEN 2 AND 5 THEN 1 ELSE 0 END) / COUNT(*), 2) AS moderate_delay_pct,
-    ROUND(100.0 * SUM(CASE WHEN f.delay_minutes >= 6 THEN 1 ELSE 0 END) / COUNT(*), 2) AS severe_delay_pct
-FROM fact_stop_arrival f
-JOIN dim_date d ON f.date_key = d.date_key
-GROUP BY
-    EXTRACT(YEAR FROM d.full_date),
-    EXTRACT(MONTH FROM d.full_date)
+    EXTRACT(YEAR FROM date) AS year,
+    EXTRACT(MONTH FROM date) AS month,
+    SUM(total_arrivals) AS total_arrivals,
+    ROUND(
+        SUM(total_arrivals * avg_delay_minutes) / SUM(total_arrivals),
+        2
+    ) AS avg_delay_minutes,
+    ROUND(
+        SUM(total_arrivals * on_time_pct) / SUM(total_arrivals),
+        2
+    ) AS on_time_pct,
+    ROUND(
+        SUM(total_arrivals * moderate_delay_pct) / SUM(total_arrivals),
+        2
+    ) AS moderate_delay_pct,
+    ROUND(
+        SUM(total_arrivals * severe_delay_pct) / SUM(total_arrivals),
+        2
+    ) AS severe_delay_pct
+FROM gold.stop_arrival_stats
+GROUP BY EXTRACT(YEAR FROM date), EXTRACT(MONTH FROM date)
 ORDER BY year, month;
-```
 ```
 
 ## Repository Structure
 
 ```text
 .
-├── ddl/                                # DDL scripts — star schema creation
-│   ├── 01_create_dim_tables.sql        # Dimension tables: dim_date, dim_stop, dim_trip
-│   └── 02_create_fact_table.sql        # Fact table: fact_stop_arrival with indexes
-├── dml/                                # DML scripts — sample data
-│   ├── 01_sample_dim_data.sql          # Sample rows for dimension tables
-│   └── 02_sample_fact_data.sql         # Sample rows for fact table
 ├── queries/                            # SQL answering the 5 business questions
 │   ├── 01_delay_categories.sql         # Q1: distribution of arrivals by delay category
 │   ├── 02_delays_by_line.sql           # Q2: delays by bus line
@@ -218,15 +169,18 @@ ORDER BY year, month;
 ├── data/raw/                           # Local GTFS feed files
 └── docs/                               # Architecture and schema diagrams
 ```
-## How to Run
+## Run the pipeline
 
-```bash
-psql -d tartu_bus -f ddl/01_create_dim_tables.sql
-psql -d tartu_bus -f ddl/02_create_fact_table.sql
-psql -d tartu_bus -f dml/01_sample_dim_data.sql
-psql -d tartu_bus -f dml/02_sample_fact_data.sql
-psql -d tartu_bus -f queries/01_delay_categories.sql
-```
+1. Start the services with `docker compose up -d`.
+2. Trigger the `update_gtfs` DAG in Airflow to ingest the current feed.
+3. Build and test the version-aware Silver models:
+
+   ```bash
+   docker compose exec dbt dbt build --select path:models/silver
+   ```
+
+4. Run the five SQL files in `queries/` against the `tartu_bus` database. They
+   query the current dbt-managed `gold.stop_arrival_stats` model.
 
 ## Load the GTFS feed into Bronze
 
