@@ -1,6 +1,7 @@
 {{ config(materialized='table', schema='silver') }}
 
 SELECT
+    file_version,
     trip_id,
     route_id,
     service_id,
@@ -14,6 +15,7 @@ SELECT
     NULLIF(TRIM(block_id), '') AS block_id,
     loaded_at
 FROM {{ source('bronze', 'raw_trips') }}
-WHERE NULLIF(TRIM(trip_id), '') IS NOT NULL
+WHERE file_version = (SELECT file_version FROM {{ ref('silver_current_gtfs_version') }})
+  AND NULLIF(TRIM(trip_id), '') IS NOT NULL
   AND NULLIF(TRIM(route_id), '') IS NOT NULL
   AND NULLIF(TRIM(service_id), '') IS NOT NULL

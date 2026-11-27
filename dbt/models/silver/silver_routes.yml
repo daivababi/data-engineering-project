@@ -4,6 +4,9 @@ models:
   - name: silver_routes
     description: "Cleaned GTFS route records."
     columns:
+      - name: file_version
+        tests:
+          - not_null
       - name: route_id
         tests:
           - unique

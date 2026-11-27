@@ -9,7 +9,6 @@ sources:
         columns:
           - name: stop_id
             tests:
-              - unique
               - not_null
           - name: stop_name
             tests:

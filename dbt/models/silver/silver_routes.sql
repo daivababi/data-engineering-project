@@ -1,6 +1,7 @@
 {{ config(materialized='table', schema='silver') }}
 
 SELECT
+    file_version,
     route_id,
     NULLIF(TRIM(agency_id), '') AS agency_id,
     NULLIF(TRIM(route_short_name), '') AS route_short_name,
@@ -12,4 +13,5 @@ SELECT
     NULLIF(TRIM(competent_authority), '') AS competent_authority,
     loaded_at
 FROM {{ source('bronze', 'raw_routes') }}
-WHERE NULLIF(TRIM(route_id), '') IS NOT NULL
+WHERE file_version = (SELECT file_version FROM {{ ref('silver_current_gtfs_version') }})
+  AND NULLIF(TRIM(route_id), '') IS NOT NULL

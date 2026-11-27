@@ -4,6 +4,9 @@ models:
   - name: silver_trips
     description: "Cleaned GTFS trips, one row per trip_id."
     columns:
+      - name: file_version
+        tests:
+          - not_null
       - name: trip_id
         tests:
           - unique

@@ -6,6 +6,9 @@ models:
       One row per GTFS service active on a date. Weekly calendar rules are
       expanded and calendar exceptions are applied.
     columns:
+      - name: file_version
+        tests:
+          - not_null
       - name: service_date_key
         description: "Deterministic key derived from service_id and service_date."
         tests:

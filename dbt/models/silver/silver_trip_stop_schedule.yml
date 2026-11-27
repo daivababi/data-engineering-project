@@ -6,6 +6,9 @@ models:
       GTFS trip-stop schedule for Tartu-area stops. One row per trip and
       stop sequence, with route and stop details attached.
     columns:
+      - name: file_version
+        tests:
+          - not_null
       - name: trip_stop_key
         description: "Deterministic key for a trip and its stop sequence."
         tests:

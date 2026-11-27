@@ -4,6 +4,9 @@ models:
   - name: silver_calendar
     description: "Cleaned recurring GTFS service calendars."
     columns:
+      - name: file_version
+        tests:
+          - not_null
       - name: service_id
         tests:
           - unique

@@ -6,15 +6,18 @@
 
 WITH source AS (
     SELECT
+        file_version,
         NULLIF(TRIM(trip_id), '') AS trip_id,
         NULLIF(TRIM(stop_id), '') AS stop_id,
         NULLIF(TRIM(stop_sequence), '') AS stop_sequence_text,
         NULLIF(TRIM(arrival_time), '') AS arrival_time,
         loaded_at
     FROM {{ source('bronze', 'raw_stop_times') }}
+    WHERE file_version = (SELECT file_version FROM {{ ref('silver_current_gtfs_version') }})
 ),
 typed AS (
     SELECT
+        file_version,
         trip_id,
         stop_id,
         CASE
@@ -26,6 +29,7 @@ typed AS (
     FROM source
 )
 SELECT
+    file_version,
     trip_id,
     stop_id,
     stop_sequence,

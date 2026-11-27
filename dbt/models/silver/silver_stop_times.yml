@@ -7,6 +7,9 @@ models:
       arrival_time is preserved in GTFS format; arrival_offset_seconds
       supports service times after midnight such as 25:05:00.
     columns:
+      - name: file_version
+        tests:
+          - not_null
       - name: trip_id
         tests:
           - not_null

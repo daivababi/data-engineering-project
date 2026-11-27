@@ -2,6 +2,7 @@
 
 WITH typed AS (
     SELECT
+        file_version,
         NULLIF(TRIM(service_id), '') AS service_id,
         TO_DATE(start_date, 'YYYYMMDD') AS start_date,
         TO_DATE(end_date, 'YYYYMMDD') AS end_date,
@@ -13,8 +14,10 @@ WITH typed AS (
         NULLIF(TRIM(saturday), '')::integer = 1 AS saturday,
         NULLIF(TRIM(sunday), '')::integer = 1 AS sunday
     FROM {{ source('bronze', 'raw_calendar') }}
+    WHERE file_version = (SELECT file_version FROM {{ ref('silver_current_gtfs_version') }})
 )
 SELECT
+    file_version,
     service_id,
     start_date,
     end_date,

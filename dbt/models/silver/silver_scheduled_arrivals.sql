@@ -1,6 +1,7 @@
 {{ config(materialized='view', schema='silver') }}
 
 SELECT
+    schedule.file_version,
     md5(
         schedule.service_id || ':' ||
         schedule.trip_id || ':' ||
@@ -22,3 +23,4 @@ SELECT
 FROM {{ ref('silver_trip_stop_schedule') }} AS schedule
 JOIN {{ ref('silver_service_dates') }} AS service_dates
     ON schedule.service_id = service_dates.service_id
+    AND schedule.file_version = service_dates.file_version

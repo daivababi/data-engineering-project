@@ -2,6 +2,7 @@
 
 WITH regular_service_dates AS (
     SELECT
+        c.file_version,
         c.service_id,
         generated.service_datetime::date AS service_date
     FROM {{ ref('silver_calendar') }} AS c
@@ -23,26 +24,29 @@ WITH regular_service_dates AS (
           SELECT 1
           FROM {{ ref('silver_calendar_dates') }} AS exception
           WHERE exception.service_id = c.service_id
+            AND exception.file_version = c.file_version
             AND exception.service_date = generated.service_datetime::date
       )
 ),
 added_service_dates AS (
     SELECT DISTINCT
+        file_version,
         service_id,
         service_date
     FROM {{ ref('silver_calendar_dates') }}
     WHERE exception_type = 1
 ),
 active_service_dates AS (
-    SELECT service_id, service_date
+    SELECT file_version, service_id, service_date
     FROM regular_service_dates
 
     UNION
 
-    SELECT service_id, service_date
+    SELECT file_version, service_id, service_date
     FROM added_service_dates
 )
 SELECT
+    file_version,
     md5(service_id || ':' || service_date::text) AS service_date_key,
     service_id,
     service_date

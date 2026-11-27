@@ -1,0 +1,12 @@
+version: 2
+
+models:
+  - name: silver_current_gtfs_version
+    description: >
+      The latest GTFS version loaded into Bronze, determined by the most recent
+      raw_stops loaded_at timestamp. The orchestrated feed load ingests stops last.
+    columns:
+      - name: file_version
+        tests:
+          - unique
+          - not_null

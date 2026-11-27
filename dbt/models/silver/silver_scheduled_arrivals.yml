@@ -6,6 +6,9 @@ models:
       Scheduled GTFS arrival at each Tartu stop for each active service date.
       This model contains timetable data only, not observed arrivals or delays.
     columns:
+      - name: file_version
+        tests:
+          - not_null
       - name: scheduled_arrival_key
         description: "Deterministic key for a service date, trip, and stop sequence."
         tests:

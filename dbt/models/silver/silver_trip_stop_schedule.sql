@@ -1,6 +1,7 @@
 {{ config(materialized='view', schema='silver') }}
 
 SELECT
+    st.file_version,
     md5(st.trip_id || ':' || st.stop_sequence::text) AS trip_stop_key,
     st.trip_id,
     t.service_id,
@@ -18,7 +19,10 @@ SELECT
 FROM {{ ref('silver_stop_times') }} AS st
 JOIN {{ ref('silver_trips') }} AS t
     ON st.trip_id = t.trip_id
+    AND st.file_version = t.file_version
 JOIN {{ ref('silver_stops') }} AS s
     ON st.stop_id = s.stop_id
+    AND st.file_version = s.file_version
 LEFT JOIN {{ ref('silver_routes') }} AS r
     ON t.route_id = r.route_id
+    AND t.file_version = r.file_version
