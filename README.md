@@ -4,26 +4,43 @@
 
 ## Current GTFS/dbt pipeline
 
-The GTFS feed is loaded from `data/raw` into PostgreSQL `bronze.raw_*` tables.
-The manually triggered `ingest_gtfs` Airflow DAG fully replaces the raw GTFS
-tables on each run, except `raw_stops`, which is managed by `ingest_stops`.
-The daily `ingest_stops` DAG upserts the full stops feed and marks stops missing
-from a successfully loaded feed inactive instead of deleting their history.
+The `update_gtfs` Airflow DAG downloads a GTFS feed, assigns a content-based
+version, and passes the same version and feed path to `ingest_gtfs` and
+`ingest_stops`. Bronze keeps rows for different `file_version` values; reloading
+the same version replaces or upserts that version's rows without removing other
+versions. For manual ingestion, `ingest_gtfs` reads `.txt` files from `data/raw`
+by default, while `ingest_stops` loads `stops.txt` separately.
 
-After ingestion, run `dbt build` to refresh the Silver and Gold models and the
-`dim_stop_snapshot`. The snapshot tracks stop changes and deactivations, and
-`dim_stop` keeps the historical Tartu versions. New and removed routes are
-reflected when `ingest_gtfs` reloads `routes.txt` and dbt is rebuilt.
+The version-aware Silver timetable models use the version with the latest
+`bronze.raw_stops.loaded_at` as current and retain `file_version` for lineage.
+This assumes the orchestrated feed load completes the stops ingestion after
+the other GTFS tables. Rebuild and test these models with:
 
 ```bash
-docker compose exec dbt dbt build
+docker compose exec dbt dbt build --select path:models/silver
 ```
+
+Schedule stop IDs missing from the current Bronze stops feed fail a dbt test.
+`silver_stops` retains active Tartu stops and active stops outside Tartu that
+are referenced by the current timetable, including the 55 stops identified
+above. Scheduled stops that still cannot join to a Silver stop are reported by
+a warning test.
 
 `dim_trip` has one row per GTFS `trip_id` and stores trip-level details such
 as route, service, direction, and headsign. Scheduled stop times are held in
 `silver.silver_scheduled_arrivals`. The persistent Ridango services write
 inferred stop events to `silver.observed_stop_arrival`; this is staging data
 for the final dbt-managed analytical fact table.
+
+### GTFS history work status
+
+The Silver current-version filtering and `file_version` lineage are implemented
+and tested. SCD2 history is not yet complete. The existing
+`dbt/snapshots/dim_stop_snapshot.sql` remains unchanged; its canonical ownership,
+the entities to track, and the policy for records removed from a later feed
+still need agreement with Daiva. Snapshot execution and the full post-ingestion
+refresh workflow also remain to be finalized. Do not treat stop-history handling
+as complete until those decisions and changes are made.
 
 The root `ddl/`, `dml/`, and `queries/` files below describe a separate legacy
 sample star schema for delay analysis; they are not the current dbt models.
@@ -215,15 +232,11 @@ psql -d tartu_bus -f queries/01_delay_categories.sql
 
 The `ingest_gtfs` Airflow DAG loads each `.txt` file in `data/raw` except
 `stops.txt` into a `bronze.raw_<filename>` table. Source columns are stored as
-text, with a `loaded_at` timestamp added for load tracking. Each run replaces
-the contents of these raw tables, and all tables are loaded in one transaction.
-Stops are loaded separately by `ingest_stops` so the raw stop table is not
-overwritten by the generic loader.
+text, with `file_version` and `loaded_at` for version lineage and load tracking.
+It replaces rows only for the run's version; other versions remain. Stops are
+loaded separately by `ingest_stops`.
 
-Start the services with Docker Compose, then trigger `ingest_gtfs` from the
-Airflow UI. The source data is mounted read-only into Airflow, and the DAG
-connects to the project PostgreSQL service using the `POSTGRES_*` settings.
-After either ingestion DAG succeeds, run `docker compose exec dbt dbt build`
-to refresh models and capture stop history. If a GTFS file is absent, its
-previous raw table is not automatically removed; keep the feed's expected files
-in `data/raw` when loading a new feed version.
+For normal updates, trigger `update_gtfs` in Airflow; it coordinates both
+ingestion DAGs. After both succeed, the version-aware Silver models can be
+built with the command above. If a GTFS file is absent, its previous Bronze
+table is not automatically removed.

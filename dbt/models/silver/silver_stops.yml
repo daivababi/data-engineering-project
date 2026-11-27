@@ -2,7 +2,7 @@ version: 2
 
 models:
   - name: silver_stops
-    description: "Cleaned bus stops for Tartu city (stop_area = 'Tartu linn')."
+    description: "Active Tartu stops and other active stops referenced by the current timetable."
     columns:
       - name: file_version
         tests:
