@@ -95,6 +95,12 @@ def ingest_gtfs():
                     )
                     cur.execute(
                         sql.SQL(
+                            "ALTER TABLE {} ADD COLUMN IF NOT EXISTS "
+                            "loaded_at TIMESTAMPTZ NOT NULL DEFAULT now()"
+                        ).format(table)
+                    )
+                    cur.execute(
+                        sql.SQL(
                             "CREATE TEMP TABLE {} ({}) ON COMMIT DROP"
                         ).format(stage, column_definitions)
                     )

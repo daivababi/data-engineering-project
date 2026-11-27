@@ -8,6 +8,7 @@ import requests
 import zipfile
 import json
 import hashlib
+import re
 import shutil
 
 GTFS_VERSIONS_DIR = Path("/opt/airflow/data/gtfs_versions")
@@ -61,7 +62,21 @@ def update_gtfs():
             old_last_modified = LAST_MODIFIED_FILE.read_text().strip()
             print(f"Previous Last-Modified: {old_last_modified}")
 
-            if old_last_modified == new_last_modified and new_last_modified is not None:
+            current_version = None
+            if CURRENT_VERSION_FILE.exists():
+                current_version = json.loads(
+                    CURRENT_VERSION_FILE.read_text()
+                ).get("version")
+            has_content_version = (
+                isinstance(current_version, str)
+                and re.fullmatch(r"[0-9a-f]{64}", current_version) is not None
+            )
+
+            if (
+                old_last_modified == new_last_modified
+                and new_last_modified is not None
+                and has_content_version
+            ):
                 print("GTFS has not changed")
                 return {"action": "skip"}
 
@@ -80,15 +95,21 @@ def update_gtfs():
                 "GTFS has not changed"
             )
 
-        version = datetime.now().strftime("%Y%m%d_%H%M")
-        version_dir = GTFS_VERSIONS_DIR / version
-
-        version_dir.mkdir(parents=True, exist_ok=True)
-
         if result["action"] == "fallback":
-            files = list(RAW_FALLBACK_DIR.glob("*.txt"))
+            files = sorted(RAW_FALLBACK_DIR.glob("*.txt"))
             if not files:
                 raise Exception("No fallback GTFS files found")
+
+            digest = hashlib.sha256(b"fallback\0")
+            for file in files:
+                digest.update(file.name.encode("utf-8"))
+                digest.update(b"\0")
+                digest.update(file.read_bytes())
+                digest.update(b"\0")
+            version = digest.hexdigest()
+            version_dir = GTFS_VERSIONS_DIR / version
+            version_dir.mkdir(parents=True, exist_ok=True)
+
             for file in files:
                 shutil.copy(file, version_dir / file.name)
             source_type = "fallback"
@@ -97,9 +118,13 @@ def update_gtfs():
             response = requests.get(GTFS_URL, timeout=120)
             response.raise_for_status()
 
-            ZIP_PATH.write_bytes(response.content)
+            archive_bytes = response.content
+            version = hashlib.sha256(archive_bytes).hexdigest()
+            version_dir = GTFS_VERSIONS_DIR / version
+            version_dir.mkdir(parents=True, exist_ok=True)
+            ZIP_PATH.write_bytes(archive_bytes)
 
-            print(f"Downloaded {len(response.content)} bytes")
+            print(f"Downloaded {len(archive_bytes)} bytes")
 
             with zipfile.ZipFile(ZIP_PATH, "r") as archive:
                  archive.extractall(version_dir)
